@@ -1,0 +1,69 @@
+Feature codes:
+
+Scenario 1: No islands or tributaries
+- Top left = TL_1
+- Bottom left = BL_1
+- Thalweg = t
+- Bottom right = BR_1
+- Top right = TR_1
+
+Scenario 2: One island
+- Top left = TL_1
+- Bottom left = BL_1
+- Thalweg = t
+- Bottom right island = BRI_1
+- Top right island = TRI_1
+- Top left island = TLI_1
+- Bottom left island = BLI_1
+- Secondary thalweg = st_1
+- Bottom right = BR_1
+- Top right = TR_1
+
+Scenario 3: Two (or more) overlapping islands
+- Top left = TL_1
+- Bottom left = BL_1
+- Thalweg = t
+- Bottom right island = BRI_1
+- Top right island = TRI_1
+- Top left island = TLI_1
+- Bottom left island = BLI_1
+- Secondary thalweg = st_1
+- Bottom right island = BRI_2
+- Top right island = TRI_2
+- Top left island = TLI_2
+- Bottom left island = BLI_2
+- Secondary thalweg = st_2
+- Bottom right = BR_1
+- Top right = TR_1
+
+Scenario 4: One bank forms a peninsula-like feature
+- Top left = TL_1
+- Bottom left = BL_1
+- Thalweg = t
+- Bottom right = BR_1
+- Top right = TR_1
+- Top right = TRP_1
+- Top right = TRP_2
+
+Scenario 5: A part of the channel is disconnected from the mainstem
+- Top left = TL_1
+- Bottom left = BL_1
+- Thalweg = t
+- Bottom right = BR_1
+- Top right = TR_1
+- TLD_1
+- TRD_1
+
+Scenario 6: Some banks may be coded as EOV
+- EOV on left bank = EOVL
+- EOV on right bank = EOVR
+- EOV on right of island = EOVR_1
+- EOV on left of island = EOVL_1
+- EOV on right of second island = EOVR_2
+- EOV on left of second island = EOVL_2
+
+Scenario 7: Some overbank shots may have been surveyed beyond top-of-bank or edge-of-veg
+- Left valley bottom shot = VL
+- Right valley bottom shot = VR
+- First island = VI_1
+- Second island = VI_2
