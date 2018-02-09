@@ -7,7 +7,7 @@ hubs <- arrange(hubs, CS,hub,desc(Elevation)) # Sort the hubs
 
 duplicate_hub <- duplicated(hubs$Easting,hubs$Northing) # Look for ground shot at hub (comes w/ lower Z but same X,Y)
 hubs[duplicated(!duplicated(hubs$Easting,hubs$Northing)), ]
-hubs <- hubs[-c(40,42),]
+#hubs <- hubs[-c(40,42),]
 
 # Calculate the equation of a line for each cross-section ----------------------
 
@@ -20,7 +20,6 @@ rb_hubs <- filter(hubs, hub == "RBH")
 rb_hubs <- rb_hubs[,-c(1:3,8:10)]  # Delete uneeded columns
 names(rb_hubs) <- c("cs_rb","e_rb","n_rb","elv_rb") 
 hubs <- cbind(lb_hubs,rb_hubs)
-stopifnot((hubs$cs == hubs$cs_rb)) # Sanity check: hubs are not ordered and/or paired correctly
 hubs <- hubs[,-c(7)] # Delete uneeded columns
 hubs$m <- (hubs$n_rb - hubs$n_lb) / (hubs$e_rb - hubs$e_lb) # Find the slopes
 hubs$b <- hubs$n_lb - hubs$m * hubs$e_lb  # Find the intercepts
@@ -35,13 +34,14 @@ cs_grid$upper_cs <- as.numeric(cs_grid$upper_cs)
 cs_grid$lower_cs <- as.numeric(cs_grid$lower_cs)
 # Match df containing all combinations of cross sections with data from the "hubs" df:
 hubs$upper_cs <- as.numeric(hubs$cs)
-intersect_upper_cs <- left_join(cs_grid, hubs)
+inter_upper_cs <- left_join(cs_grid, hubs)
+
 hubs$lower_cs <- as.numeric(hubs$cs)
 hubs$upper_cs <- NULL
-intersect_lower_cs <- left_join(cs_grid, hubs)
-# Create a new df with only the colums required to complete the analysis
-cs_int <- data.frame(intersect_upper_cs$e_lb,intersect_upper_cs$n_lb,intersect_upper_cs$e_rb,intersect_upper_cs$n_rb,intersect_upper_cs$upper_cs,intersect_upper_cs$lower_cs,intersect_upper_cs$m,intersect_upper_cs$b,intersect_lower_cs$m,intersect_lower_cs$b)
-names(cs_int) <- c("e_lb","n_lb","e_rb","n_rb","upper_cs","lower_cs","upper_m","upper_b","lower_m","lower_b")
+inter_lower_cs <- left_join(cs_grid, hubs)
+# Create a new df with only the columns required to complete the analysis
+cs_int <- data.frame(inter_upper_cs$upper_cs,inter_upper_cs$e_lb,inter_upper_cs$n_lb,inter_upper_cs$e_rb,inter_upper_cs$n_rb,inter_upper_cs$m,inter_upper_cs$b,inter_upper_cs$lower_cs,inter_lower_cs$e_lb,inter_lower_cs$n_lb,inter_lower_cs$e_rb,inter_lower_cs$n_rb,inter_lower_cs$m,inter_lower_cs$b)
+names(cs_int) <- c("upper_cs","e_lb_up","n_lb_up","e_rb_up","n_rb_up","upper_m","upper_b","lower_cs","e_lb_low","n_lb_low","e_rb_low","n_rb_low","lower_m","lower_b")
 
 # Determine if the lines intersect within the study area -----------------------
 
@@ -49,24 +49,41 @@ names(cs_int) <- c("e_lb","n_lb","e_rb","n_rb","upper_cs","lower_cs","upper_m","
 cs_int$x <- (cs_int$lower_b - cs_int$upper_b) / (cs_int$upper_m - cs_int$lower_m) # Common x coordinate
 cs_int$y <- cs_int$upper_m * cs_int$x + cs_int$upper_b # Common y coordinate
 # Data needs to be ordered from smallest to largest since the subsequent function doesn't understand coordinates:
-cs_int$e1_order <- ifelse(cs_int$e_lb > cs_int$e_rb,cs_int$e_rb,cs_int$e_lb)
-cs_int$e2_order <- ifelse(cs_int$e_lb > cs_int$e_rb,cs_int$e_lb,cs_int$e_rb)
-cs_int$n1_order <- ifelse(cs_int$n_lb > cs_int$n_rb,cs_int$n_rb,cs_int$n_lb)
-cs_int$n2_order <- ifelse(cs_int$n_lb > cs_int$n_rb,cs_int$n_lb,cs_int$n_rb)
+cs_int$e1_up_order <- ifelse(cs_int$e_lb_up > cs_int$e_rb_up,cs_int$e_rb_up,cs_int$e_lb_up)
+cs_int$e2_up_order <- ifelse(cs_int$e_lb_up > cs_int$e_rb_up,cs_int$e_lb_up,cs_int$e_rb_up)
+cs_int$n1_up_order <- ifelse(cs_int$n_lb_up > cs_int$n_rb_up,cs_int$n_rb_up,cs_int$n_lb_up)
+cs_int$n2_up_order <- ifelse(cs_int$n_lb_up > cs_int$n_rb_up,cs_int$n_lb_up,cs_int$n_rb_up)
+
+cs_int$e1_low_order <- ifelse(cs_int$e_lb_low > cs_int$e_rb_low,cs_int$e_rb_low,cs_int$e_lb_low)
+cs_int$e2_low_order <- ifelse(cs_int$e_lb_low > cs_int$e_rb_low,cs_int$e_lb_low,cs_int$e_rb_low)
+cs_int$n1_low_order <- ifelse(cs_int$n_lb_low > cs_int$n_rb_low,cs_int$n_rb_low,cs_int$n_lb_low)
+cs_int$n2_low_order <- ifelse(cs_int$n_lb_low > cs_int$n_rb_low,cs_int$n_lb_low,cs_int$n_rb_low)
 
 # Determine if the lines cross within the study area or at some point beyond the hubs:
 findInt <- function(value, start, end) {
         start < value & end > value
 }
 
-cs_int$x_intersect <- findInt(cs_int$x, cs_int$e1_order, cs_int$e2_order)
-cs_int$y_intersect <- findInt(cs_int$y, cs_int$n1_order, cs_int$n2_order)
-cs_int$intersect <- ifelse(cs_int$y_intersect == TRUE & cs_int$x_intersect == TRUE,TRUE,FALSE)
+cs_int$x_up_intersect <- findInt(cs_int$x, cs_int$e1_up_order, cs_int$e2_up_order)
+cs_int$y_up_intersect <- findInt(cs_int$y, cs_int$n1_up_order, cs_int$n2_up_order)
+
+cs_int$x_low_intersect <- findInt(cs_int$x, cs_int$e1_low_order, cs_int$e2_low_order)
+cs_int$y_low_intersect <- findInt(cs_int$y, cs_int$n1_low_order, cs_int$n2_low_order)
+
+# Only one condition actually needs to be true, but if only one is true then there's an error somewhere
+
+cs_int$intersect <- ifelse(cs_int$y_up_intersect == TRUE & cs_int$x_up_intersect == TRUE & cs_int$y_low_intersect == TRUE & cs_int$x_low_intersect == TRUE,TRUE,FALSE)
+
+
 # Clean up the df
-cs_int$e1_order <- NULL
-cs_int$e2_order <- NULL
-cs_int$n1_order <- NULL
-cs_int$n2_order <- NULL
+cs_int$e1_up_order <- NULL
+cs_int$e2_up_order <- NULL
+cs_int$n1_up_order <- NULL
+cs_int$n2_up_order <- NULL
+cs_int$e1_low_order <- NULL
+cs_int$e2_low_order <- NULL
+cs_int$n1_low_order <- NULL
+cs_int$n2_low_order <- NULL
 cs_int$x_intersect <- NULL
 cs_int$y_intersect <- NULL
 # Generate a df populated w/ cross section data from cross sections that intersect within the study area
@@ -77,27 +94,58 @@ colnames(intersecting_cs)[colnames(intersecting_cs) == 'y'] <- 'y_intersect'
 
 # Order the cross sections for plotting ----------------------------------------
 
+
 # Calculate distance from the LB hub to the point of intersection:
-intersecting_cs$lb_hub2inter <- sqrt((intersecting_cs$y_intersect - intersecting_cs$n_lb)^2 +  (intersecting_cs$x_intersect - intersecting_cs$e_lb)^2 )
+intersecting_cs$lb_hub2inter <- sqrt((intersecting_cs$y_intersect - intersecting_cs$n_lb_up)^2 +  (intersecting_cs$x_intersect - intersecting_cs$e_lb_up)^2 )
 # Subset the feature of interest
 feat_raw <- filter(xs_data,attribs == "t")
+# Remove any duplicate shots with the same x,y coordinates:
+feat_raw <- arrange(feat_raw,CS,desc(hub))
+bad <- duplicated(feat_raw$Easting,feat_raw$Northing,feat_raw$Elevation)
+feat_raw <- feat_raw[!bad, ]
 colnames(feat_raw)[colnames(feat_raw) == 'CS'] <- 'upper_cs'
 feat <- left_join(feat_raw, intersecting_cs) # Join the feature to the order data
-feat$lb_hub2pt <- sqrt((feat$Northing - feat$n_lb)^2 + (feat$Easting - feat$e_lb)^2) # Distance of the feature from LB hub
+feat$lb_hub2pt <- sqrt((feat$Northing - feat$n_lb_up)^2 + (feat$Easting - feat$e_lb_up)^2) # Distance of the feature from LB hub
 feat$in_order <- ifelse(feat$lb_hub2inter>feat$lb_hub2pt,TRUE,FALSE) # Is the feature on the left of the intersection?
 feat_sub <- data.frame(feat$upper_cs,feat$lower_cs,feat$in_order)
 feat_sub$feat.in_order <- ifelse(is.na(feat_sub$feat.in_order),TRUE,feat_sub$feat.in_order) # Convert "NA" to "TRUE"
-# If "FALSE", then a re-ordering is needed:
-feat_sub$reorder <- ifelse(feat_sub$feat.in_order == "TRUE",feat_sub$feat.upper_cs,feat_sub$feat.lower_cs)
-re_order <- unique(feat_sub$reorder) # Remove the duplicate cross sections from all the generated combinations
-re_order <- data.frame(re_order)
-names(re_order) <- c("upper_cs")
-t_BL <- left_join(re_order,feat_raw)
-t_BL <- t_BL[,-c(1,2,3,4,8,10)]
-names(t_BL) <- c("X","Y","Z","desc")
+out_order <- filter(feat_sub,feat_sub$feat.in_order == FALSE)
+no_out_order <- length(out_order$feat.upper_cs) # number of cross sections out-of-order
 
-breakline <- t_BL
-interp_bl <- auto.breakline(breakline,0.5, 0.1, 0.001)
-interp_bl <- as.data.frame(interp_bl)
+# If features are out of order, then re-order them here:
+if(no_out_order > 0) {
+        out_order_cs <- c(out_order$feat.upper_cs,out_order$feat.lower_cs)
+        out_order_cs <- unique(out_order_cs)
+        out_order_cs <- sort(out_order_cs)
+        # Count the number of times a cross section intersects another cross section in a given direction (upstream or downstream)
+        no_inters_up_cs <- aggregate(data.frame(count = out_order$feat.upper_cs), list(value = out_order$feat.upper_cs), length)
+        no_inters_do_cs <- aggregate(data.frame(count = out_order$feat.lower_cs), list(value = out_order$feat.lower_cs), length)
+        # Join the two counts together
+        net_no_intersections <- full_join(no_inters_up_cs,no_inters_do_cs, by = "value")
+        net_no_intersections$count.x <- ifelse(is.na(net_no_intersections$count.x),0,net_no_intersections$count.x)
+        net_no_intersections$count.y <- ifelse(is.na(net_no_intersections$count.y),0,net_no_intersections$count.y)
+        names(net_no_intersections) <- c("cs_no","positive","negative")
+        net_no_intersections$net_shift <- net_no_intersections$positive - net_no_intersections$negative
+        net_no_intersections$new_order <- net_no_intersections$net_shift + net_no_intersections$cs_no
+        colnames(feat_raw)[colnames(feat_raw) == 'upper_cs'] <- 'cs_no'
+        feat_raw <- full_join(net_no_intersections,feat_raw)
+        feat_raw$new_order <- ifelse(is.na(feat_raw$new_order),feat_raw$cs_no,feat_raw$new_order)
+        feat_raw <- arrange(feat_raw,new_order)
+        breakline <- feat_raw[,-c(1:8,12,14)]
+}
+
+if(no_out_order == 0) {
+        breakline <- feat_raw[,-c(1:4,8,10)]
+}
+
+# Interpolate the breakline ----------------------------------------------------
+
+names(breakline) <- c("X","Y","Z","desc")
+interp <- auto.breakline(breakline,0.5, 0.1, 0.001)
+bl_t <- as.data.frame(interp)
+
+
+
+
 
 
